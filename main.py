@@ -1,3 +1,4 @@
+import os
 from typing import Annotated
 
 import uvicorn
@@ -45,7 +46,12 @@ def find_item(item_id: int) -> Item:
 # Home page
 @app.get("/")
 def home():
-    return {"message": "Lab 09 - Items API", "items": "/items", "docs": "/docs"}
+    return {
+        "message": "Lab 09 - Items API",
+        "version": os.getenv("APP_VERSION", "local"),
+        "items": "/items",
+        "docs": "/docs",
+    }
 
 
 # Get all items
