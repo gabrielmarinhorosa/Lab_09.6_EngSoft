@@ -1,0 +1,142 @@
+{
+  "info": {
+    "name": "Lab 09.6 - FastAPI Docker Items API (Azure)",
+    "description": "Exercício 9.6: testa a API FastAPI rodando em container no Azure App Service. Rode em ordem.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://lab096-gmarinho-hacfekbzf9e5drg6.brazilsouth-01.azurewebsites.net" },
+    { "key": "createdId", "value": "" }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const esperado = Number(pm.info.requestName.match(/\\[(\\d{3})\\]$/)[1]);",
+          "pm.test('Status ' + esperado, () => pm.response.to.have.status(esperado));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Listar itens [200]",
+      "request": { "method": "GET", "url": "{{baseUrl}}/items" },
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Lista contém o item 1', () => pm.expect(pm.response.json().items.map(i => i.id)).to.include(1));"
+      ] } } ]
+    },
+    {
+      "name": "Buscar item existente [200]",
+      "request": { "method": "GET", "url": "{{baseUrl}}/items/1" },
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Retorna o item 1', () => pm.expect(pm.response.json().item.id).to.eql(1));"
+      ] } } ]
+    },
+    {
+      "name": "Buscar item inexistente [404]",
+      "request": { "method": "GET", "url": "{{baseUrl}}/items/9999" },
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Mensagem de erro', () => pm.expect(pm.response.json().detail).to.eql('Item not found'));"
+      ] } } ]
+    },
+    {
+      "name": "Criar item [201]",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/items",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\"name\": \"Item do Postman\"}" }
+      },
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "const item = pm.response.json().item;",
+        "pm.test('Nome salvo', () => pm.expect(item.name).to.eql('Item do Postman'));",
+        "pm.collectionVariables.set('createdId', item.id);"
+      ] } } ]
+    },
+    {
+      "name": "Criar item sem name [422]",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/items",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{}" }
+      },
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Aponta o campo name', () => pm.expect(pm.response.json().detail[0].loc).to.include('name'));"
+      ] } } ]
+    },
+    {
+      "name": "Atualizar item [200]",
+      "request": {
+        "method": "PUT",
+        "url": "{{baseUrl}}/items/{{createdId}}",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\"name\": \"Item atualizado\"}" }
+      },
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Nome alterado', () => pm.expect(pm.response.json().item.name).to.eql('Item atualizado'));"
+      ] } } ]
+    },
+    {
+      "name": "Atualizar item inexistente [404]",
+      "request": {
+        "method": "PUT",
+        "url": "{{baseUrl}}/items/9999",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\"name\": \"Nao existe\"}" }
+      }
+    },
+    {
+      "name": "Atualizar com nome em branco [422]",
+      "request": {
+        "method": "PUT",
+        "url": "{{baseUrl}}/items/{{createdId}}",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\"name\": \"   \"}" }
+      }
+    },
+    {
+      "name": "Conferir atualização [200]",
+      "request": { "method": "GET", "url": "{{baseUrl}}/items/{{createdId}}" },
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Nome em branco não sobrescreveu', () => pm.expect(pm.response.json().item.name).to.eql('Item atualizado'));"
+      ] } } ]
+    },
+    {
+      "name": "Remover item [200]",
+      "request": { "method": "DELETE", "url": "{{baseUrl}}/items/{{createdId}}" },
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('result = true', () => pm.expect(pm.response.json().result).to.eql(true));"
+      ] } } ]
+    },
+    {
+      "name": "Buscar item removido [404]",
+      "request": { "method": "GET", "url": "{{baseUrl}}/items/{{createdId}}" }
+    },
+    {
+      "name": "Remover item já removido [404]",
+      "request": { "method": "DELETE", "url": "{{baseUrl}}/items/{{createdId}}" }
+    },
+    {
+      "name": "Criar depois de remover não repete id [201]",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/items",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\"name\": \"Outro item\"}" }
+      },
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "const id = pm.response.json().item.id;",
+        "pm.test('Id novo', () => pm.expect(id).to.not.eql(Number(pm.collectionVariables.get('createdId'))));",
+        "pm.collectionVariables.set('createdId', id);"
+      ] } } ]
+    },
+    {
+      "name": "Limpar item de teste [200]",
+      "request": { "method": "DELETE", "url": "{{baseUrl}}/items/{{createdId}}" }
+    }
+  ]
+}
